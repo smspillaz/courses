@@ -8,3 +8,6 @@ pandas
 scikit-learn
 bcolz
 sympy
+tqdm
+h5py
+tensorflow-gpu
