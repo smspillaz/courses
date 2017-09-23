@@ -122,20 +122,20 @@ def main(argv):
 
     print("Loading training data...")
     training_batches = get_batches(os.path.join(arguments.images,
-                                                'train'))
+                                                'train'),
+                                   batch_size=1,
+                                   shuffle=False)
     training_encoded_labels = onehot_encode(training_batches.classes)
-    training_encoded_labels.resize((1000, 2))
-    training_data = load_data(lambda: np.concatenate(list(batches_to_np_arrays(training_batches,
-                                                                               limit=1000))),
+    training_data = load_data(lambda: np.concatenate(list(batches_to_np_arrays(training_batches))),
                               'cats-dogs-encoded-train-images.bc')
 
     print("Loading validation data...")
     validation_batches = get_batches(os.path.join(arguments.images,
-                                                  'valid'))
+                                                  'valid'),
+                                     batch_size=1,
+                                     shuffle=True)
     validation_encoded_labels = onehot_encode(validation_batches.classes)
-    validation_encoded_labels.resize((200, 2))
-    validation_data = load_data(lambda: np.concatenate(list(batches_to_np_arrays(validation_batches,
-                                                                                 limit=200))),
+    validation_data = load_data(lambda: np.concatenate(list(batches_to_np_arrays(validation_batches))),
                                 'cats-dogs-encoded-valid-images.bc')
 
     # Now generate the features for each
