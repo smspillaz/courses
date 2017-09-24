@@ -110,6 +110,13 @@ def main(argv):
     parser.add_argument("images",
                         metavar="PATH",
                         type=str)
+    parser.add_argument("--weights",
+                        metavar="WEIGHTS",
+                        type=str)
+    parser.add_argument("--train",
+                        action="store_true")
+    parser.add_argument("--load",
+                        action="store_true")
     arguments = parser.parse_args(argv or sys.argv[1:])
 
     vgg = Vgg16()
@@ -145,26 +152,51 @@ def main(argv):
                                                                                                 validation_batches)))),
                                 'cats-dogs-encoded-valid-images.bc')
 
-    # Now generate the features for each
-    print("Generating features...")
-    training_features = load_data(lambda: model.predict(training_data),
-                                  'cats-dogs-training-features.bc')
-    validation_features = load_data(lambda: model.predict(validation_data),
-                                    'cats-dogs-validation-features.bc')
+    if arguments.load:
+        model.load_weights(arguments.weights)
 
-    # Okay, now that we have the features, we can use stochastic
-    # gradient descent to try and fit our linear model
-    linear_model.fit(training_features,
-                     training_encoded_labels,
-                     nb_epoch=3,
-                     batch_size=4,
-                     validation_data=(validation_features,
-                                      validation_encoded_labels))
+    if arguments.train:
+        # We're going to create a new layer for the VGG model now, so shuffle the training
+        # data around a little
+        gen = image.ImageDataGenerator()
+        lastlayer_training_batches = gen.flow(training_data, training_encoded_labels, batch_size=4, shuffle=True)
+        lastlayer_validation_batches = gen.flow(validation_data, validation_encoded_labels, batch_size=4, shuffle=False)
 
-    # Now that we've fitted our model, lets make some predictions
-    for images, labels in get_batches(os.path.join(arguments.images, 'train')):
-        vgg_prediction = model.predict(images)
-        print(labels, linear_model.predict_classes(vgg_prediction))
+        model.pop()
+        for layer in model.layers:
+            layer.trainable = False
+
+        optimizer = RMSprop(lr=0.1)
+
+        model.add(Dense(2, activation='softmax'))
+        model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
+        model.fit_generator(lastlayer_training_batches,
+                            samples_per_epoch=lastlayer_training_batches.n,
+                            nb_epoch=2,
+                            validation_data=lastlayer_validation_batches,
+                            nb_val_samples=lastlayer_validation_batches.n)
+
+
+        # Decrease the learning weight a little
+        K.set_value(optimizer.lr, 0.01)
+
+        # Now find the first dense layer and mark it and all subsequent layers
+        # as trainable
+        first_dense = [index for index, layer in enumerate(model.layers) if type(layer) is Dense][0]
+        for layer in model.layers[first_dense:]:
+            layer.trainable = True
+
+        model.fit_generator(lastlayer_training_batches,
+                            samples_per_epoch=lastlayer_training_batches.n,
+                            nb_epoch=3,
+                            validation_data=lastlayer_validation_batches,
+                            nb_val_samples=lastlayer_validation_batches.n)
+
+        if arguments.weights:
+            model.save_weights(arguments.weights)
+
+    predictions = model.predict_classes(validation_data, batch_size=1)
+    print(confusion_matrix(validation_batches.classes, predictions))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
