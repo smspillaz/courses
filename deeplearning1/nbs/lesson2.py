@@ -36,6 +36,7 @@ from keras.optimizers import RMSprop
 from keras.preprocessing import image
 
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import confusion_matrix
 
 from vgg16 import Vgg16
 
