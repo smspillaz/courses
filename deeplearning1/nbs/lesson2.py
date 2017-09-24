@@ -138,8 +138,8 @@ def main(argv):
                                    batch_size=1,
                                    shuffle=False)
     training_encoded_labels = onehot_encode(training_batches.classes)
-    training_data = load_data(lambda: np.concatenate(list(itertools.imap(operator.itemgetter(0),
-                                                                         batches_to_np_arrays(training_batches)))),
+    training_data = load_data(lambda: np.concatenate(list(map(operator.itemgetter(0),
+                                                              batches_to_np_arrays(training_batches)))),
                               'cats-dogs-encoded-train-images.bc')
 
     print("Loading validation data...")
@@ -148,8 +148,8 @@ def main(argv):
                                      batch_size=1,
                                      shuffle=True)
     validation_encoded_labels = onehot_encode(validation_batches.classes)
-    validation_data = load_data(lambda: np.concatenate(list(batches_to_np_arrays(itertools.imap(operator.itemgetter(0),
-                                                                                                validation_batches)))),
+    validation_data = load_data(lambda: np.concatenate(list(map(operator.itemgetter(0),
+                                                                batches_to_np_arrays(validation_batches)))),
                                 'cats-dogs-encoded-valid-images.bc')
 
     if arguments.load:
